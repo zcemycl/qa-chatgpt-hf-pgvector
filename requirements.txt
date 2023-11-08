@@ -12,5 +12,13 @@ pgvector
 asyncio
 psycopg2-binary
 jupyter
-openai
 ipykernel
+pandas
+python-dotenv
+openai[embeddings]
+num2words
+matplotlib
+plotly
+scipy
+scikit-learn
+tiktoken
