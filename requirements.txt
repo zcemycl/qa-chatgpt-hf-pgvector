@@ -1,0 +1,16 @@
+# boto3
+# fastapi
+pydantic
+# gunicorn
+# uvicorn
+loguru
+httpx
+asyncpg
+sqlalchemy[asyncio]
+# sqlalchemy
+pgvector
+asyncio
+psycopg2-binary
+jupyter
+openai
+ipykernel

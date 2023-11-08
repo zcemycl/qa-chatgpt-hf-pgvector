@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools","wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 79
+exclude = '''
+/(
+    \.git
+  | \.mypy_cache
+  | \.nox
+  | build
+  | dist
+  | \.eggs
+)/
+'''
