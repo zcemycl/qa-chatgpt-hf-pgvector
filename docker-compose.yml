@@ -12,7 +12,9 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DATABASE=postgres
-      # - PGDATA=/var/lib/postgresql/data/
+      - PGDATA=/var/lib/postgresql/data/
+    volumes:
+      - ./src/docker/postgres/postgres-data:/var/lib/postgresql/data
     ports:
       - '5432:5432'
     networks:
