@@ -1,6 +1,6 @@
 # boto3
 # fastapi
-pydantic
+pydantic==1.10.9
 # gunicorn
 # uvicorn
 loguru
