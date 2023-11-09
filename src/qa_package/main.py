@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import time
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -10,7 +11,7 @@ from tqdm import tqdm
 
 from .dataclasses.orm import metadata, record
 from .services.openai import OpenAI
-from .utils import parse_args
+from .utils import parse_args, pre_encoding_format
 
 # from sqlalchemy.sql import select
 
@@ -39,15 +40,15 @@ def conversation_loop(client, session: Session):
             break
         elif user_input.lower() == "mode 1":
             mode = user_input.lower()
+            continue
         elif user_input.lower() == "mode 2":
             mode = user_input.lower()
             messages = init_messages.copy()
+            continue
 
         if mode == "mode 1":
-            user_input = input("You: ")
+            pass
         elif mode == "mode 2":
-            if len(messages) == 1:
-                user_input = input("You: ")
             messages.append({"role": "user", "content": user_input})
             response = client.chat(
                 messages=messages,
@@ -64,7 +65,9 @@ def main(config: argparse.Namespace):
     engine = create_engine(db_url)
     with Session(engine) as sess:
         if config.initialise_embeddings:
+            print("[INFO] Documents encoding...")
             df = pd.read_csv(config.article_csv)
+            df = df.apply(lambda x: x.astype(str).str.lower())
             BATCH = df.shape[0] // BATCH_SIZE + int(
                 df.shape[0] % BATCH_SIZE > 0
             )
@@ -75,8 +78,33 @@ def main(config: argparse.Namespace):
             sess.commit()
 
             for i in tqdm(range(BATCH)):
-                pass
+                ids = df["article_id"][
+                    i * BATCH_SIZE : (i + 1) * BATCH_SIZE
+                ].tolist()
+                docs = [
+                    pre_encoding_format.format(**tmp)
+                    for tmp in df.iloc[
+                        i * BATCH_SIZE : (i + 1) * BATCH_SIZE
+                    ].to_dict(orient="records")
+                ]
+                vecs = client.create_embeddings(
+                    docs, EMBEDDING_DEPLOYMENT_NAME
+                )
 
+                for tmpid, tmpvec in zip(ids, vecs):
+                    tmprow = record(id=tmpid, factors=tmpvec)
+                    sess.add(tmprow)
+                sess.commit()
+                time.sleep(5)
+
+        print("[INFO] Chatbot starts...")
+        print("[INFO] Type 'mode 1' to start Product Advice Mode.")
+        print(
+            """[INFO] Type 'mode 2' to start Customer Conversation Mode\
+                for fashion guidance."""
+        )
+        print("[INFO] Type 'exit' to terminate the chatbot.")
+        print("[INFO] Current Mode: 'mode 2'.")
         conversation_loop(client, sess)
 
     engine.dispose()
