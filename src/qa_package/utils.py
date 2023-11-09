@@ -1,5 +1,6 @@
 import argparse
 
+# For openai embedding text
 pre_encoding_format = """\
 product name: {prod_name},\
 product type name: {product_type_name},\
@@ -10,6 +11,7 @@ garment group name: {garment_group_name},\
 details: {detail_desc}\
 """
 
+# Standard reply for product advice
 post_reply = """\
 {answer} \n
 Here is the product id: {product_id}\
@@ -26,3 +28,15 @@ def parse_args(args: list[str]) -> argparse.Namespace:
     p.add_argument("--initialise-embeddings", action="store_true")
     args = p.parse_args(args)
     return args
+
+
+def conversation_loop_info():
+    print("[INFO] Chatbot starts...")
+    print("[INFO] Type 'mode 1' to start Product Advice Mode.")
+    print(
+        """[INFO] Type 'mode 2' to start Customer Conversation Mode \
+for fashion guidance."""
+    )
+    print("[INFO] Type 'exit' to terminate the chatbot.")
+    print("[INFO] Type 'restart' to clear chat history.")
+    print("[INFO] Current Mode: 'mode 2'.")

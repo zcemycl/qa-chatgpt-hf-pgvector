@@ -10,5 +10,5 @@ metadata = Base.metadata
 
 class record(Base):
     __tablename__ = "record"
-    id = Column("id", BigInteger, primary_key=True)
-    factors = Column("factors", Vector(1536))
+    id = Column("id", BigInteger, primary_key=True)  # article_id is biginteger
+    factors = Column("factors", Vector(1536))  # vector dimension = 1536

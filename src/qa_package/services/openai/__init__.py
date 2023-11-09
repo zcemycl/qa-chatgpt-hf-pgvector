@@ -11,6 +11,7 @@ class OpenAI:
         openai.api_type = "azure"
         self.openai = openai
 
+    # embeddings api wrapper
     def create_embeddings(
         self, docs: list[str], embedding_deployment_name: str
     ) -> list[list[float]]:
@@ -19,6 +20,7 @@ class OpenAI:
         )
         return [tmp["embedding"] for tmp in vecs["data"]]
 
+    # chat completions wrapper
     def chat(
         self, messages: list[dict[str, str]], chat_deployment_name: str
     ) -> str:
@@ -27,6 +29,8 @@ class OpenAI:
         )
         return response.to_dict()["choices"][0].message["content"]
 
+    # guardrails + chat completions wrapper
+    # for advising products
     def advice_product(
         self, prompt_params: dict[str, str], chat_deployment_name: str
     ) -> dict[str, str]:

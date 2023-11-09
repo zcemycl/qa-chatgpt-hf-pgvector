@@ -6,8 +6,8 @@ pydantic==1.10.9
 loguru
 httpx
 asyncpg
-sqlalchemy[asyncio]
-# sqlalchemy
+# sqlalchemy[asyncio]
+sqlalchemy
 pgvector
 asyncio
 psycopg2-binary
