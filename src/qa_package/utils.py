@@ -10,6 +10,11 @@ garment group name: {garment_group_name},\
 details: {detail_desc}\
 """
 
+post_reply = """\
+{answer} \n
+Here is the product id: {product_id}\
+"""
+
 
 def parse_args(args: list[str]) -> argparse.Namespace:
     p = argparse.ArgumentParser()
