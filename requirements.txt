@@ -15,7 +15,7 @@ jupyter
 ipykernel
 pandas
 python-dotenv
-openai[embeddings]
+openai==0.28.1 # 1.1.1 not compatible with guardrails-ai
 num2words
 matplotlib
 plotly
