@@ -22,3 +22,4 @@ plotly
 scipy
 scikit-learn
 tiktoken
+guardrails-ai
