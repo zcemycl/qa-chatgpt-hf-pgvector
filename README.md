@@ -25,6 +25,12 @@
     - create chatbot.
 
 ## How to run?
+1. Edit environment variables.
+    ```
+    cp .env.example .env
+    cp .env jpnotes/
+    # Then fill in .env variables
+    ```
 1. Install required packages. `pip install -e .`
 2. Initialise postgres in Docker. `docker compose up --build`
 3. Run chatbot. (Only run with `--initialise-embeddings` for the first time)
