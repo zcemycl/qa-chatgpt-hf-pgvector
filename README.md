@@ -1,6 +1,8 @@
 # qa-chatgpt-pgvector
 
-## Schedule
+![sample](resources/sample.png)
+
+## Schedule (8-9 Nov)
 1. docker-compose.yml + Dockerfile.pgvector
     - initialise a database with vector support.
 1. test-openai.ipynb
@@ -28,6 +30,26 @@
 3. Run chatbot. (Only run with `--initialise-embeddings` for the first time)
     ```python
     python -m qa_package.main \
-        --article-csv str \
-        --initialise-embeddings
+    --article-csv str \
+    --initialise-embeddings
     ```
+    for example,
+    ```
+    python -m qa_package.main \
+    --initialise-embeddings \
+    --article-csv /Users/spare/Documents/data/articles.csv
+    ```
+
+## References
+1. https://pypi.org/project/openai/0.28.1/
+    - Old Documentation of openai 0.28.1
+2. https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/switching-endpoints
+    - openai 0.28.1 vs openai 1.1.1
+3. https://www.kommunicate.io/blog/create-a-customer-service-chatbot-using-chatgpt/
+    - Conversation loop for chatbot.
+4. https://www.mlq.ai/fine-tuning-gpt-3-question-answer-bot/
+    - Question Answering with given information.
+5. https://docs.guardrailsai.com/defining_guards/pydantic/
+    - Define Guardrails with Pydantic.
+6. https://docs.guardrailsai.com/guardrails_ai/getting_started/#creating-a-rail-spec
+    - Guardrails example.
