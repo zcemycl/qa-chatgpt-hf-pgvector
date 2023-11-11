@@ -23,6 +23,10 @@
     - try all embeddings and chat completions in 0.28.x openai api.
 6. qa_package.main
     - create chatbot.
+7. hf-captions
+    - test gpt4 vision, it requires payment to use. (rejected)
+    - test hugging face Salesforce/blip-image-captioning-base model for captioning.
+    - analyse if clusterings can help suggestion in same or different categories.
 
 ## How to run?
 1. Edit environment variables.
@@ -59,3 +63,7 @@
     - Define Guardrails with Pydantic.
 6. https://docs.guardrailsai.com/guardrails_ai/getting_started/#creating-a-rail-spec
     - Guardrails example.
+7. https://cookbook.openai.com/examples/gpt_with_vision_for_video_understanding
+    - openai 0.28.1 can support gpt4 vision preview.
+8. https://huggingface.co/tasks/image-to-text
+    - hugging face image caption model
