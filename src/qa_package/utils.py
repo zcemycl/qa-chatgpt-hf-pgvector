@@ -37,6 +37,14 @@ def conversation_loop_info():
         """[INFO] Type 'mode 2' to start Customer Conversation Mode \
 for fashion guidance."""
     )
+    print(
+        """[INFO] Type 'mode 3' to find similar garments \
+based on text and image"""
+    )
+    print(
+        """[INFO] Type 'mode 4' to suggest complementarity garments \
+based on text and image"""
+    )
     print("[INFO] Type 'exit' to terminate the chatbot.")
     print("[INFO] Type 'restart' to clear chat history.")
     print("[INFO] Current Mode: 'mode 2'.")

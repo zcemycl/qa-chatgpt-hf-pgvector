@@ -73,7 +73,12 @@ def conversation_loop(df: pd.DataFrame, client: OpenAI, session: Session):
         user_input = input("You: ")
         if user_input.lower() == "exit":
             break
-        elif user_input.lower() == "mode 1" or user_input.lower() == "mode 2":
+        elif (
+            user_input.lower() == "mode 1"
+            or user_input.lower() == "mode 2"
+            or user_input.lower() == "mode 3"
+            or user_input.lower() == "mode 4"
+        ):
             # mode switching, skip adding to messages
             mode = user_input.lower()
             print(f"[INFO] Current Mode: '{mode}'.")
@@ -125,6 +130,12 @@ def conversation_loop(df: pd.DataFrame, client: OpenAI, session: Session):
             )
             print(f"Assistant: {response}")
             messages.append({"role": "assistant", "content": response})
+
+        elif mode == "mode 3":
+            pass
+
+        elif mode == "mode 4":
+            pass
 
 
 def main(config: argparse.Namespace):
