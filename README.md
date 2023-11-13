@@ -2,8 +2,8 @@
 
 ![sample](resources/sample.png)
 
-## Schedule (8-9 Nov)
-1. docker-compose.yml + Dockerfile.pgvector
+## Schedule (8-13 Nov)
+1. docker-compose.yml + Dockerfile.pgvector -> 8 Nov
     - initialise a database with vector support.
 1. test-openai.ipynb
     - test openai==1.1.1 api, including embeddings and chat completions.
@@ -21,12 +21,14 @@
     - try guardrails-ai.
     - switch openai version to 0.28.x as 1.1.x is not compatible with guardrails-ai.
     - try all embeddings and chat completions in 0.28.x openai api.
-6. qa_package.main
+6. qa_package.main (Mode 1 and 2) -> 9 Nov
     - create chatbot.
-7. hf-captions
+7. hf-captions -> 12 Nov
     - test gpt4 vision, it requires payment to use. (rejected)
     - test hugging face Salesforce/blip-image-captioning-base model for captioning.
     - analyse if clusterings can help suggestion in same or different categories.
+8. qa_package.main (Mode 3) -> 13 Nov
+    - find garments based on text + image.
 
 ## How to run?
 1. Edit environment variables.
@@ -40,14 +42,20 @@
 3. Run chatbot. (Only run with `--initialise-embeddings` for the first time)
     ```python
     python -m qa_package.main \
+    --batch-size int \
+    --root-image-dir str \
     --article-csv str \
-    --initialise-embeddings
+    --initialise-embeddings \
+    --visualise
     ```
     for example,
     ```
     python -m qa_package.main \
+    --batch-size 16 \
     --initialise-embeddings \
-    --article-csv /Users/spare/Documents/data/articles.csv
+    --article-csv /Users/spare/Documents/data/articles.csv \
+    --root-image-dir /Users/spare/Documents/data/images/ \
+    --visualise
     ```
 
 ## References
