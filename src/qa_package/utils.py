@@ -26,6 +26,7 @@ def parse_args(args: list[str]) -> argparse.Namespace:
         default="/Users/spare/Documents/data/articles.csv",
     )
     p.add_argument("--initialise-embeddings", action="store_true")
+    p.add_argument("--batch-size", type=int, default=16)  # max: 16
     args = p.parse_args(args)
     return args
 
