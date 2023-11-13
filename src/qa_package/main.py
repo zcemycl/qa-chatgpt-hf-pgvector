@@ -2,7 +2,10 @@ import argparse
 import os
 import sys
 import time
+from typing import Tuple
 
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
 import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy.engine import create_engine
@@ -11,6 +14,7 @@ from sqlalchemy.sql import select
 from tqdm import tqdm
 
 from .dataclasses.orm import metadata, record
+from .services.guardrails import guard_image_search
 from .services.huggingface import HuggingFace
 from .services.openai import OpenAI
 from .utils import (
@@ -27,7 +31,6 @@ API_KEY = os.getenv("API_KEY")
 API_VERSION = os.getenv("API_VERSION")
 CHAT_DEPLOYMENT_NAME = os.getenv("CHAT_DEPLOYMENT_NAME")
 EMBEDDING_DEPLOYMENT_NAME = os.getenv("EMBEDDING_DEPLOYMENT_NAME")
-BATCH_SIZE = 5
 db_url = "postgresql://postgres:postgres@localhost/postgres"
 
 
@@ -77,6 +80,68 @@ class Chatbot:
             # avoid hitting max limit of openai api calls
             time.sleep(5)
 
+    def product_advice(
+        self, user_input: str, session: Session
+    ) -> Tuple[str, dict[str, str]]:
+        # embed user input
+        vec = self.client.create_embeddings(
+            [user_input], EMBEDDING_DEPLOYMENT_NAME
+        )[0]
+        # find best answer (product) from vector database
+        res = (
+            session.execute(
+                select(record.id)
+                .order_by(record.factors.cosine_distance(vec))
+                .limit(1)
+            )
+            .scalars()
+            .all()[0]
+        )
+        tmp_row = self.df[self.df.article_id == str(res)].to_dict(
+            orient="records"
+        )[0]
+
+        # ask chatgpt to rewrite product description
+        dict_resp = self.client.advice_product(
+            {"question": user_input, **tmp_row}, CHAT_DEPLOYMENT_NAME
+        )
+        reply = post_reply.format(**dict_resp)
+        return reply, tmp_row
+
+    def find_similar_garments_with_image(
+        self, user_input: str, session: Session
+    ) -> list[str]:
+        _, validated_output = guard_image_search(
+            self.client.openai.ChatCompletion.create,
+            prompt_params={"question": user_input},
+            deployment_id=CHAT_DEPLOYMENT_NAME,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0,
+            max_tokens=1024,
+            temperature=0.3,
+        )
+        url_or_path = None
+        if validated_output["url"] != "None":
+            url_or_path = validated_output["url"]
+        if validated_output["path"] != "None":
+            url_or_path = validated_output["path"]
+        caption = self.hf.captioner(url_or_path)[0]["generated_text"]
+        print("Assistant: ", caption)
+        vec = self.client.create_embeddings(
+            [caption], EMBEDDING_DEPLOYMENT_NAME
+        )[0]
+        res = (
+            session.execute(
+                select(record.id)
+                .order_by(record.factors.cosine_distance(vec))
+                .limit(5)
+            )
+            .scalars()
+            .all()
+        )
+        return res
+
     def conversation_loop(self, session: Session):
         init_messages = [
             {"role": "system", "content": "You are a helpful assistant."}
@@ -113,31 +178,17 @@ class Chatbot:
             messages.append({"role": "user", "content": user_input})
 
             if mode == "mode 1":
-                # embed user input
-                vec = self.client.create_embeddings(
-                    [user_input], EMBEDDING_DEPLOYMENT_NAME
-                )[0]
-                # find best answer (product) from vector database
-                res = (
-                    session.execute(
-                        select(record.id)
-                        .order_by(record.factors.cosine_distance(vec))
-                        .limit(1)
-                    )
-                    .scalars()
-                    .all()[0]
-                )
-                tmp_row = self.df[self.df.article_id == str(res)].to_dict(
-                    orient="records"
-                )[0]
-
-                # ask chatgpt to rewrite product description
-                dict_resp = self.client.advice_product(
-                    {"question": user_input, **tmp_row}, CHAT_DEPLOYMENT_NAME
-                )
-                reply = post_reply.format(**dict_resp)
+                reply, tmp_row = self.product_advice(user_input, session)
                 print(f"Assistant: {reply}")
                 messages.append({"role": "assistant", "content": reply})
+
+                if self.config.visualise:
+                    img = mpimg.imread(
+                        self.config.root_image_dir
+                        + f"0{tmp_row['article_id']}.jpg"
+                    )
+                    plt.imshow(img)
+                    plt.show()
 
             elif mode == "mode 2":
                 # chatgpt conversation with client
@@ -149,7 +200,25 @@ class Chatbot:
                 messages.append({"role": "assistant", "content": response})
 
             elif mode == "mode 3":
-                pass
+                ids = self.find_similar_garments_with_image(
+                    user_input, session
+                )
+                tmp_rows = self.df[
+                    self.df.article_id.isin([str(i) for i in ids])
+                ].to_dict(orient="records")
+
+                for row in tmp_rows:
+                    print(
+                        "Assistant: product id -- ",
+                        row["article_id"],
+                    )
+                    if self.config.visualise:
+                        img = mpimg.imread(
+                            self.config.root_image_dir
+                            + f"0{row['article_id']}.jpg"
+                        )
+                        plt.imshow(img)
+                        plt.show()
 
             elif mode == "mode 4":
                 pass

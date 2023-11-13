@@ -27,6 +27,12 @@ def parse_args(args: list[str]) -> argparse.Namespace:
     )
     p.add_argument("--initialise-embeddings", action="store_true")
     p.add_argument("--batch-size", type=int, default=16)  # max: 16
+    p.add_argument(
+        "--root-image-dir",
+        type=str,
+        default="/Users/spare/Documents/data/images/",
+    )
+    p.add_argument("--visualise", action="store_true")
     args = p.parse_args(args)
     return args
 
