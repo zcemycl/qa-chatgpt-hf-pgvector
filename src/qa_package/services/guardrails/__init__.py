@@ -1,5 +1,7 @@
+from typing import Optional
+
 import guardrails as gd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class ProductInfo(BaseModel):
@@ -30,4 +32,29 @@ ${gr.complete_json_suffix_v2}
 
 guard_product_advice = gd.Guard.from_pydantic(
     output_class=ProductInfo, prompt=prompt
+)
+
+
+class Message(BaseModel):
+    url: Optional[HttpUrl] = Field(
+        description="""Find the uri of the jpg or png or jpeg image.\
+If the answer is not contained within the text below, say 'None'"""
+    )
+    path: Optional[str] = Field(
+        description="""Find the path of the jpg or png or jpeg image.\
+If the answer is not contained within the text below, say 'None'"""
+    )
+    request: str = Field(
+        description="""Extract the client request for \
+garments and remove image information. """
+    )
+
+
+prompt2 = """\
+As a shop assistant, given the following information, ${question} \n
+Please extract uri or path of the image file, and the client request.
+"""
+
+guard_image_search = gd.Guard.from_pydantic(
+    output_class=Message, prompt=prompt2
 )
