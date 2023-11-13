@@ -23,7 +23,7 @@
     - try all embeddings and chat completions in 0.28.x openai api.
 6. qa_package.main (Mode 1 and 2) -> 9 Nov
     - create chatbot.
-7. hf-captions -> 12 Nov
+7. hf-captions.ipynb -> 12 Nov
     - test gpt4 vision, it requires payment to use. (rejected)
     - test hugging face Salesforce/blip-image-captioning-base model for captioning.
     - analyse if clusterings can help suggestion in same or different categories.
