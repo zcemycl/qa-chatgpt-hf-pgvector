@@ -211,6 +211,12 @@ class Chatbot:
                         "I cannot see any image from link or path.",
                     )
                     continue
+                except ValueError:
+                    print(
+                        "Assistant: I am sorry, ",
+                        "I cannot see any image from link or path.",
+                    )
+                    continue
                 tmp_rows = self.df[
                     self.df.article_id.isin([str(i) for i in ids])
                 ].to_dict(orient="records")
