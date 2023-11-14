@@ -7,6 +7,7 @@ from typing import Tuple
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import pandas as pd
+import PIL
 from dotenv import load_dotenv
 from sqlalchemy.engine import create_engine
 from sqlalchemy.orm import Session
@@ -200,9 +201,16 @@ class Chatbot:
                 messages.append({"role": "assistant", "content": response})
 
             elif mode == "mode 3":
-                ids = self.find_similar_garments_with_image(
-                    user_input, session
-                )
+                try:
+                    ids = self.find_similar_garments_with_image(
+                        user_input, session
+                    )
+                except PIL.UnidentifiedImageError:
+                    print(
+                        "Assistant: I am sorry, ",
+                        "I cannot see any image from link or path.",
+                    )
+                    continue
                 tmp_rows = self.df[
                     self.df.article_id.isin([str(i) for i in ids])
                 ].to_dict(orient="records")
