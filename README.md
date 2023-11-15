@@ -29,6 +29,14 @@
     - analyse if clusterings can help suggestion in same or different categories.
 8. qa_package.main (Mode 3) -> 13 Nov
     - find garments based on text + image.
+9. ltree.ipynb
+    - test ltree in postgres to group product groups and types.
+    - create color embedding
+    - create pattern embedding
+    - create garment embedding + setn.{product group}.{product type} as ltree path.
+10. qa_package.main (Mode 4)
+    - suggest complementarity garments based on text + image.
+
 
 ## How to run?
 1. Edit environment variables.

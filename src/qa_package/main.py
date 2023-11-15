@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 from tqdm import tqdm
 
-from .dataclasses.orm import metadata, record
+from .dataclasses.orm import color, garment, metadata, record
 from .services.guardrails import guard_image_search
 from .services.huggingface import HuggingFace
 from .services.openai import OpenAI
@@ -55,6 +55,8 @@ class Chatbot:
         metadata.drop_all(bind=self.engine)
         metadata.create_all(bind=self.engine)
         sess.query(record).delete()
+        sess.query(color).delete()
+        sess.query(garment).delete()
         sess.commit()
 
         # embeddings in batches
