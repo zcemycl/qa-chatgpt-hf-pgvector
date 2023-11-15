@@ -9,19 +9,19 @@ CREATE TABLE IF NOT EXISTS record (
 );
 
 CREATE TABLE IF NOT EXISTS color (
-	id bigint primary key,
+	id bigserial primary key,
 	name varchar(255) unique,
 	factors VECTOR(1536)
 );
 
 CREATE TABLE IF NOT EXISTS pattern (
-	id bigint primary key,
+	id bigserial primary key,
 	name varchar(255) unique,
 	factors VECTOR(1536)
 );
 
 CREATE TABLE IF NOT EXISTS garment (
-	id bigint primary key,
+	id bigserial primary key,
 	name varchar(255) unique,
 	factors VECTOR(1536),
 	path ltree

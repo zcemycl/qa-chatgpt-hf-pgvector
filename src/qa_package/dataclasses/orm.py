@@ -3,7 +3,7 @@ from __future__ import annotations
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import BigInteger, Column, String
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.utils import LtreeType
+from sqlalchemy_utils import LtreeType
 
 Base = declarative_base()
 metadata = Base.metadata
