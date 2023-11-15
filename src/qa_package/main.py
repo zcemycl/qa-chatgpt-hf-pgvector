@@ -12,9 +12,10 @@ from dotenv import load_dotenv
 from sqlalchemy.engine import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
+from sqlalchemy_utils import Ltree
 from tqdm import tqdm
 
-from .dataclasses.orm import color, garment, metadata, record
+from .dataclasses.orm import color, garment, metadata, pattern, record
 from .services.guardrails import guard_image_search
 from .services.huggingface import HuggingFace
 from .services.openai import OpenAI
@@ -23,6 +24,7 @@ from .utils import (
     parse_args,
     post_reply,
     pre_encoding_format,
+    replace_to_fit_ltree,
 )
 
 load_dotenv()
@@ -33,6 +35,14 @@ API_VERSION = os.getenv("API_VERSION")
 CHAT_DEPLOYMENT_NAME = os.getenv("CHAT_DEPLOYMENT_NAME")
 EMBEDDING_DEPLOYMENT_NAME = os.getenv("EMBEDDING_DEPLOYMENT_NAME")
 db_url = "postgresql://postgres:postgres@localhost/postgres"
+
+set_groups = {
+    "garment upper body": "set1",
+    "garment lower body": "set1",
+    "garment full body": "set2",
+    "swimwear": "set3",
+    "nightwear": "set4",
+}
 
 
 class Chatbot:
@@ -46,11 +56,6 @@ class Chatbot:
         self,
         sess: Session,
     ):
-        print("[INFO] Documents encoding...")
-        BATCH = self.df.shape[0] // self.config.batch_size + int(
-            self.df.shape[0] % self.config.batch_size > 0
-        )
-
         # restart table
         metadata.drop_all(bind=self.engine)
         metadata.create_all(bind=self.engine)
@@ -60,6 +65,10 @@ class Chatbot:
         sess.commit()
 
         # embeddings in batches
+        print("[INFO] Documents encoding...")
+        BATCH = self.df.shape[0] // self.config.batch_size + int(
+            self.df.shape[0] % self.config.batch_size > 0
+        )
         for i in tqdm(range(BATCH)):
             ids = self.df["article_id"][
                 i * self.config.batch_size : (i + 1) * self.config.batch_size
@@ -81,6 +90,100 @@ class Chatbot:
                 sess.add(tmprow)
             sess.commit()
             # avoid hitting max limit of openai api calls
+            time.sleep(5)
+
+        # color embeddings
+        print("[INFO] Colors encoding...")
+        unique_colors = self.df.colour_group_name.unique().tolist()
+        BATCH = len(unique_colors) // self.config.batch_size + int(
+            len(unique_colors) % self.config.batch_size > 0
+        )
+        for i in tqdm(range(BATCH)):
+            docs = unique_colors[
+                i * self.config.batch_size : (i + 1) * self.config.batch_size
+            ]
+            vecs = self.client.create_embeddings(
+                docs, EMBEDDING_DEPLOYMENT_NAME
+            )
+            for c, v in zip(docs, vecs):
+                sess.add(color(name=c.lower(), factors=v))
+            sess.commit()
+            if i % 30 == 0:
+                time.sleep(10)
+
+        # pattern embeddings
+        print("[INFO] Patterns encoding...")
+        unique_patterns = self.df.graphical_appearance_name.unique().tolist()
+        BATCH = len(unique_patterns) // self.config.batch_size + int(
+            len(unique_patterns) % self.config.batch_size > 0
+        )
+        for i in tqdm(range(BATCH)):
+            docs = unique_patterns[
+                i * self.config.batch_size : (i + 1) * self.config.batch_size
+            ]
+            vecs = self.client.create_embeddings(
+                docs, EMBEDDING_DEPLOYMENT_NAME
+            )
+            for c, v in zip(docs, vecs):
+                sess.add(pattern(name=c.lower(), factors=v))
+            sess.commit()
+            if i % 30 == 0:
+                time.sleep(10)
+
+        # garment embeddings + ltree
+        print("[INFO] Garments encoding...")
+        unique_groups = self.df.product_group_name.unique()
+        for i in range(5):
+            sess.add(
+                garment(
+                    name=f"set{i+1}",
+                    factors=[0] * 1536,
+                    path=Ltree(f"set{i+1}"),
+                )
+            )
+        sess.commit()
+        for gp in unique_groups:
+            set_name = set_groups[gp] if gp in set_groups else "set5"
+            vecgp = self.client.create_embeddings(
+                [gp], EMBEDDING_DEPLOYMENT_NAME
+            )
+            rootname = replace_to_fit_ltree(gp)
+            sess.add(
+                garment(
+                    name=gp,
+                    factors=vecgp[0],
+                    path=Ltree(f"{set_name}.{rootname}"),
+                )
+            )
+            sess.commit()
+            unique_garments = list(
+                self.df[
+                    self.df.product_group_name == gp
+                ].product_type_name.unique()
+            )
+            vecs = []
+            BATCH = len(unique_garments) // self.config.batch_size + int(
+                len(unique_garments) % self.config.batch_size > 0
+            )
+            for i in tqdm(range(BATCH)):
+                docs = unique_garments[
+                    i
+                    * self.config.batch_size : (i + 1)
+                    * self.config.batch_size
+                ]
+                vecs += self.client.create_embeddings(
+                    docs, EMBEDDING_DEPLOYMENT_NAME
+                )
+            for ga, v in zip(unique_garments, vecs):
+                childname = replace_to_fit_ltree(ga)
+                sess.add(
+                    garment(
+                        name=ga,
+                        factors=list(v),
+                        path=Ltree(f"{set_name}.{rootname}.{childname}"),
+                    )
+                )
+            sess.commit()
             time.sleep(5)
 
     def product_advice(

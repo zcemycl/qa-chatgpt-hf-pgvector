@@ -55,3 +55,13 @@ based on text and image"""
     print("[INFO] Type 'exit' to terminate the chatbot.")
     print("[INFO] Type 'restart' to clear chat history.")
     print("[INFO] Current Mode: 'mode 2'.")
+
+
+def replace_to_fit_ltree(string):
+    return (
+        string.lower()
+        .replace(" ", "_")
+        .replace("-", "_")
+        .replace("/", "_or_")
+        .replace("&", "_and_")
+    )
