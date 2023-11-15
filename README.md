@@ -2,7 +2,7 @@
 
 ![sample](resources/sample.png)
 
-## Schedule (8-13 Nov)
+## Schedule (8-15 Nov)
 1. docker-compose.yml + Dockerfile.pgvector -> 8 Nov
     - initialise a database with vector support.
 1. test-openai.ipynb
@@ -34,7 +34,7 @@
     - create color embedding
     - create pattern embedding
     - create garment embedding + setn.{product group}.{product type} as ltree path.
-10. qa_package.main (Mode 4)
+10. qa_package.main (Mode 4) -> 15 Nov
     - suggest complementarity garments based on text + image.
 
 
