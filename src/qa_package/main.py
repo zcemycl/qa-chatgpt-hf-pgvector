@@ -2,13 +2,14 @@ import argparse
 import os
 import sys
 import time
-from typing import Tuple
+from typing import Callable, Tuple
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import pandas as pd
 import PIL
 from dotenv import load_dotenv
+from sqlalchemy import func
 from sqlalchemy.engine import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
@@ -35,6 +36,7 @@ API_VERSION = os.getenv("API_VERSION")
 CHAT_DEPLOYMENT_NAME = os.getenv("CHAT_DEPLOYMENT_NAME")
 EMBEDDING_DEPLOYMENT_NAME = os.getenv("EMBEDDING_DEPLOYMENT_NAME")
 db_url = "postgresql://postgres:postgres@localhost/postgres"
+max_suggestions = 5
 
 set_groups = {
     "garment upper body": "set1",
@@ -214,29 +216,63 @@ class Chatbot:
         reply = post_reply.format(**dict_resp)
         return reply, tmp_row
 
+    def image_search(
+        self, func: Callable, user_input: str, session: Session
+    ) -> int:
+        try:
+            _, validated_output = guard_image_search(
+                self.client.openai.ChatCompletion.create,
+                prompt_params={"question": user_input},
+                deployment_id=CHAT_DEPLOYMENT_NAME,
+                top_p=1,
+                frequency_penalty=0,
+                presence_penalty=0,
+                max_tokens=1024,
+                temperature=0.3,
+            )
+            url_or_path = None
+            if validated_output["url"] != "None":
+                url_or_path = validated_output["url"]
+            if validated_output["path"] != "None":
+                url_or_path = validated_output["path"]
+            caption = self.hf.captioner(url_or_path)[0]["generated_text"]
+            print("Assistant: ", caption)
+            vec = self.client.create_embeddings(
+                [caption], EMBEDDING_DEPLOYMENT_NAME
+            )[0]
+            ids = func(vec, session)
+        except PIL.UnidentifiedImageError:
+            print(
+                "Assistant: I am sorry, ",
+                "I cannot see any image from link or path.",
+            )
+            return 1
+        except ValueError:
+            print(
+                "Assistant: I am sorry, ",
+                "I cannot see any image from link or path.",
+            )
+            return 1
+        tmp_rows = self.df[
+            self.df.article_id.isin([str(i) for i in ids])
+        ].to_dict(orient="records")
+
+        for row in tmp_rows:
+            print(
+                "Assistant: product id -- ",
+                row["article_id"],
+            )
+            if self.config.visualise:
+                img = mpimg.imread(
+                    self.config.root_image_dir + f"0{row['article_id']}.jpg"
+                )
+                plt.imshow(img)
+                plt.show()
+        return 0
+
     def find_similar_garments_with_image(
-        self, user_input: str, session: Session
+        self, vec: list[float], session: Session
     ) -> list[str]:
-        _, validated_output = guard_image_search(
-            self.client.openai.ChatCompletion.create,
-            prompt_params={"question": user_input},
-            deployment_id=CHAT_DEPLOYMENT_NAME,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
-            max_tokens=1024,
-            temperature=0.3,
-        )
-        url_or_path = None
-        if validated_output["url"] != "None":
-            url_or_path = validated_output["url"]
-        if validated_output["path"] != "None":
-            url_or_path = validated_output["path"]
-        caption = self.hf.captioner(url_or_path)[0]["generated_text"]
-        print("Assistant: ", caption)
-        vec = self.client.create_embeddings(
-            [caption], EMBEDDING_DEPLOYMENT_NAME
-        )[0]
         res = (
             session.execute(
                 select(record.id)
@@ -247,6 +283,85 @@ class Chatbot:
             .all()
         )
         return res
+
+    def suggest_complementarity(
+        self, vec: list[float], session: Session
+    ) -> list[str]:
+        cres = (
+            session.execute(
+                select(color.name)
+                .order_by(color.factors.cosine_distance(vec))
+                .limit(5)
+            )
+            .scalars()
+            .all()
+        )
+        print("Colors: ", cres)
+        approx_records = (
+            session.execute(
+                select(record.id)
+                .order_by(record.factors.cosine_distance(vec))
+                .limit(5)
+            )
+            .scalars()
+            .all()
+        )
+        df_records = self.df[
+            self.df.article_id.isin([str(i) for i in approx_records])
+        ]
+        target_group = df_records.product_group_name.to_list()[0]
+        print(df_records)
+        l2group = session.query(garment).filter_by(name=target_group).scalar()
+        print(l2group.name)
+        l2siblings = (
+            session.query(garment.name)
+            .filter(
+                garment.path.descendant_of(l2group.path[:-1]),
+                func.nlevel(garment.path) == 2,
+                garment.id != l2group.id,
+            )
+            .all()
+        )
+        l2siblings = [i[0] for i in l2siblings]
+        print(l2siblings)
+        if len(l2siblings) == 0:
+            # search in set 5
+            l3_s5_types = (
+                session.query(garment)
+                .filter(
+                    garment.path.descendant_of(Ltree("set5")),
+                    func.nlevel(garment.path) == 3,
+                )
+                .all()
+            )
+            print([i.name for i in l3_s5_types])
+            dftmp = self.df[
+                (self.df.colour_group_name.isin(cres))
+                & self.df.product_type_name.isin([i.name for i in l3_s5_types])
+            ]
+        else:
+            l2_s5_types = (
+                session.query(garment)
+                .filter(
+                    garment.path.descendant_of(Ltree("set5")),
+                    func.nlevel(garment.path) == 2,
+                )
+                .all()
+            )
+            l2_all = [i.name for i in l2_s5_types] + l2siblings
+            dftmp = self.df[
+                (self.df.colour_group_name.isin(cres))
+                & (self.df.product_group_name.isin(l2_all))
+            ]
+        print(dftmp)
+        stmt = (
+            select(record.id)
+            .where(record.id.in_(dftmp.article_id.to_list()))
+            .order_by(record.factors.cosine_distance(vec))
+            .limit(max_suggestions)
+        )
+        res_in_order = session.execute(stmt).scalars().all()
+        return res_in_order
 
     def conversation_loop(self, session: Session):
         init_messages = [
@@ -306,41 +421,18 @@ class Chatbot:
                 messages.append({"role": "assistant", "content": response})
 
             elif mode == "mode 3":
-                try:
-                    ids = self.find_similar_garments_with_image(
-                        user_input, session
-                    )
-                except PIL.UnidentifiedImageError:
-                    print(
-                        "Assistant: I am sorry, ",
-                        "I cannot see any image from link or path.",
-                    )
+                isContinue = self.image_search(
+                    self.find_similar_garments_with_image, user_input, session
+                )
+                if isContinue:
                     continue
-                except ValueError:
-                    print(
-                        "Assistant: I am sorry, ",
-                        "I cannot see any image from link or path.",
-                    )
-                    continue
-                tmp_rows = self.df[
-                    self.df.article_id.isin([str(i) for i in ids])
-                ].to_dict(orient="records")
-
-                for row in tmp_rows:
-                    print(
-                        "Assistant: product id -- ",
-                        row["article_id"],
-                    )
-                    if self.config.visualise:
-                        img = mpimg.imread(
-                            self.config.root_image_dir
-                            + f"0{row['article_id']}.jpg"
-                        )
-                        plt.imshow(img)
-                        plt.show()
 
             elif mode == "mode 4":
-                pass
+                isContinue = self.image_search(
+                    self.suggest_complementarity, user_input, session
+                )
+                if isContinue:
+                    continue
 
     def __call__(self):
         # initialisation

@@ -83,3 +83,7 @@
     - openai 0.28.1 can support gpt4 vision preview.
 8. https://huggingface.co/tasks/image-to-text
     - hugging face image caption model
+9. https://www.kite.com/blog/python/sqlalchemy/
+    - ltree operation in sqlalchemy-utils
+10. https://www.postgresql.org/docs/current/ltree.html
+    - ltree type
