@@ -1,6 +1,11 @@
 # qa-chatgpt-pgvector
 
-![sample](resources/sample.png)
+|1. Produce Advice|2. Customer Conversation|
+|---|---|
+|<img src="resources/mode1.png" height="190">|<img src="resources/sample.png" height="190" width="250">|
+|3. Similar Garments Image Search|4. Complementarity Garments Suggestion|
+|<img src="resources/mode3.png" height="190">|<img src="resources/mode4.png" height="190">|
+
 
 ## Schedule (8-15 Nov)
 1. docker-compose.yml + Dockerfile.pgvector -> 8 Nov
