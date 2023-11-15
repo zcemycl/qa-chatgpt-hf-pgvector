@@ -4,6 +4,7 @@ import sys
 import time
 from typing import Callable, Tuple
 
+import openai
 import pandas as pd
 import PIL
 from dotenv import load_dotenv
@@ -256,7 +257,7 @@ class Chatbot:
             self.df.article_id.isin([str(i) for i in ids])
         ].to_dict(orient="records")
 
-        imgpaths = []
+        imgpaths, ids = [], []
         for row in tmp_rows:
             print(
                 "Assistant: product id -- ",
@@ -265,6 +266,7 @@ class Chatbot:
             imgpaths.append(
                 self.config.root_image_dir + f"0{row['article_id']}.jpg"
             )
+            ids.append(row["article_id"])
         if self.config.visualise:
             if validated_output["url"] == "None":
                 validated_output["url"] = None
@@ -275,6 +277,7 @@ class Chatbot:
                 url=validated_output["url"],
                 localpath=validated_output["path"],
                 supertitle=func.__name__.replace("_", " "),
+                subtitles=ids,
             )
         return 0
 
@@ -407,7 +410,11 @@ class Chatbot:
             messages.append({"role": "user", "content": user_input})
 
             if mode == "mode 1":
-                reply, tmp_row = self.product_advice(user_input, session)
+                try:
+                    reply, tmp_row = self.product_advice(user_input, session)
+                except openai.error.InvalidRequestError:
+                    print("Assistant: Sorry we don't get your request.")
+                    continue
                 print(f"Assistant: {reply}")
                 messages.append({"role": "assistant", "content": reply})
 
@@ -417,15 +424,19 @@ class Chatbot:
                             self.config.root_image_dir
                             + f"0{tmp_row['article_id']}.jpg"
                         ],
-                        supertitle="product advice",
+                        supertitle=f"product advice: {tmp_row['article_id']}",
                     )
 
             elif mode == "mode 2":
-                # chatgpt conversation with client
-                response = self.client.chat(
-                    messages=messages,
-                    chat_deployment_name=CHAT_DEPLOYMENT_NAME,
-                )
+                try:
+                    # chatgpt conversation with client
+                    response = self.client.chat(
+                        messages=messages,
+                        chat_deployment_name=CHAT_DEPLOYMENT_NAME,
+                    )
+                except openai.error.InvalidRequestError:
+                    print("Assistant: Sorry we don't get your request.")
+                    continue
                 print(f"Assistant: {response}")
                 messages.append({"role": "assistant", "content": response})
 
@@ -466,7 +477,5 @@ class Chatbot:
 
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
-    # print(args)
-    # main(args)
     main = Chatbot(args)
     main()

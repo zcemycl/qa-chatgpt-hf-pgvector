@@ -78,6 +78,7 @@ def replace_to_fit_ltree(string: str) -> str:
 def read_plot_images(
     paths: list[str],
     supertitle: str = "",
+    subtitles: list[str] = None,
     url: str = None,
     localpath: str = None,
 ):
@@ -86,6 +87,7 @@ def read_plot_images(
         img = mpimg.imread(paths[0])
         plt.imshow(img)
         plt.axis("off")
+        plt.title(supertitle)
     else:
         if url is not None or localpath is not None:
             L += 1
@@ -96,8 +98,10 @@ def read_plot_images(
         if url is not None:
             f = urlopen(url)
             paths += [f]
+            subtitles += ["Original"]
         elif localpath is not None:
             paths += [localpath]
+            subtitles += ["Original"]
         for i in range(len(paths)):
             if isinstance(paths[i], str):
                 img = mpimg.imread(paths[i])
@@ -105,7 +109,7 @@ def read_plot_images(
                 img = np.array(Image.open(paths[i]))
             ax = fig.add_subplot(gs[i // 3, i % 3])
             ax.imshow(img, norm=norm)
-        ax.set_title("Original", loc="right", y=-0.01)
+            ax.set_title(f"{subtitles[i]}", loc="right", y=-0.01)
         for ax in fig.axes:
             ax.axis("off")
         fig.suptitle(supertitle)
