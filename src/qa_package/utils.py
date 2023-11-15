@@ -1,5 +1,9 @@
 import argparse
 
+import matplotlib.gridspec as gridspec
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+
 # For openai embedding text
 pre_encoding_format = """\
 product name: {prod_name},\
@@ -57,7 +61,7 @@ based on text and image"""
     print("[INFO] Current Mode: 'mode 2'.")
 
 
-def replace_to_fit_ltree(string):
+def replace_to_fit_ltree(string: str) -> str:
     return (
         string.lower()
         .replace(" ", "_")
@@ -65,3 +69,23 @@ def replace_to_fit_ltree(string):
         .replace("/", "_or_")
         .replace("&", "_and_")
     )
+
+
+def read_plot_images(paths: list[str]):
+    L = len(paths)
+    if L == 1:
+        img = mpimg.imread(paths[0])
+        plt.imshow(img)
+        plt.axis("off")
+    else:
+        gs = gridspec.GridSpec(L // 3 + int(L % 3 > 0), 3)
+        fig = plt.figure()
+        fig.subplots_adjust(wspace=0.1, hspace=0)
+        norm = plt.Normalize(0, 1)
+        for i in range(len(paths)):
+            img = mpimg.imread(paths[i])
+            ax = fig.add_subplot(gs[i // 3, i % 3])
+            ax.imshow(img, norm=norm)
+        for ax in fig.axes:
+            ax.axis("off")
+    plt.show()

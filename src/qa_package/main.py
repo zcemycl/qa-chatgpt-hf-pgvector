@@ -4,8 +4,6 @@ import sys
 import time
 from typing import Callable, Tuple
 
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
 import pandas as pd
 import PIL
 from dotenv import load_dotenv
@@ -25,6 +23,7 @@ from .utils import (
     parse_args,
     post_reply,
     pre_encoding_format,
+    read_plot_images,
     replace_to_fit_ltree,
 )
 
@@ -257,17 +256,17 @@ class Chatbot:
             self.df.article_id.isin([str(i) for i in ids])
         ].to_dict(orient="records")
 
+        imgpaths = []
         for row in tmp_rows:
             print(
                 "Assistant: product id -- ",
                 row["article_id"],
             )
-            if self.config.visualise:
-                img = mpimg.imread(
-                    self.config.root_image_dir + f"0{row['article_id']}.jpg"
-                )
-                plt.imshow(img)
-                plt.show()
+            imgpaths.append(
+                self.config.root_image_dir + f"0{row['article_id']}.jpg"
+            )
+        if self.config.visualise:
+            read_plot_images(imgpaths)
         return 0
 
     def find_similar_garments_with_image(
@@ -404,12 +403,12 @@ class Chatbot:
                 messages.append({"role": "assistant", "content": reply})
 
                 if self.config.visualise:
-                    img = mpimg.imread(
-                        self.config.root_image_dir
-                        + f"0{tmp_row['article_id']}.jpg"
+                    read_plot_images(
+                        [
+                            self.config.root_image_dir
+                            + f"0{tmp_row['article_id']}.jpg"
+                        ]
                     )
-                    plt.imshow(img)
-                    plt.show()
 
             elif mode == "mode 2":
                 # chatgpt conversation with client
@@ -421,17 +420,15 @@ class Chatbot:
                 messages.append({"role": "assistant", "content": response})
 
             elif mode == "mode 3":
-                isContinue = self.image_search(
+                if self.image_search(
                     self.find_similar_garments_with_image, user_input, session
-                )
-                if isContinue:
+                ):
                     continue
 
             elif mode == "mode 4":
-                isContinue = self.image_search(
+                if self.image_search(
                     self.suggest_complementarity, user_input, session
-                )
-                if isContinue:
+                ):
                     continue
 
     def __call__(self):
