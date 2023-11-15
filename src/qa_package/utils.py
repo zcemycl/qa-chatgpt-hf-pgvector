@@ -1,8 +1,12 @@
 import argparse
+import http
+from urllib.request import urlopen
 
 import matplotlib.gridspec as gridspec
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
 
 # For openai embedding text
 pre_encoding_format = """\
@@ -71,21 +75,38 @@ def replace_to_fit_ltree(string: str) -> str:
     )
 
 
-def read_plot_images(paths: list[str]):
+def read_plot_images(
+    paths: list[str],
+    supertitle: str = "",
+    url: str = None,
+    localpath: str = None,
+):
     L = len(paths)
     if L == 1:
         img = mpimg.imread(paths[0])
         plt.imshow(img)
         plt.axis("off")
     else:
+        if url is not None or localpath is not None:
+            L += 1
         gs = gridspec.GridSpec(L // 3 + int(L % 3 > 0), 3)
         fig = plt.figure()
         fig.subplots_adjust(wspace=0.1, hspace=0)
         norm = plt.Normalize(0, 1)
+        if url is not None:
+            f = urlopen(url)
+            paths += [f]
+        elif localpath is not None:
+            paths += [localpath]
         for i in range(len(paths)):
-            img = mpimg.imread(paths[i])
+            if isinstance(paths[i], str):
+                img = mpimg.imread(paths[i])
+            elif isinstance(paths[i], http.client.HTTPResponse):
+                img = np.array(Image.open(paths[i]))
             ax = fig.add_subplot(gs[i // 3, i % 3])
             ax.imshow(img, norm=norm)
+        ax.set_title("Original", loc="right", y=-0.01)
         for ax in fig.axes:
             ax.axis("off")
+        fig.suptitle(supertitle)
     plt.show()

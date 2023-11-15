@@ -266,7 +266,16 @@ class Chatbot:
                 self.config.root_image_dir + f"0{row['article_id']}.jpg"
             )
         if self.config.visualise:
-            read_plot_images(imgpaths)
+            if validated_output["url"] == "None":
+                validated_output["url"] = None
+            if validated_output["path"] == "None":
+                validated_output["path"] = None
+            read_plot_images(
+                imgpaths,
+                url=validated_output["url"],
+                localpath=validated_output["path"],
+                supertitle=func.__name__.replace("_", " "),
+            )
         return 0
 
     def find_similar_garments_with_image(
@@ -407,7 +416,8 @@ class Chatbot:
                         [
                             self.config.root_image_dir
                             + f"0{tmp_row['article_id']}.jpg"
-                        ]
+                        ],
+                        supertitle="product advice",
                     )
 
             elif mode == "mode 2":
